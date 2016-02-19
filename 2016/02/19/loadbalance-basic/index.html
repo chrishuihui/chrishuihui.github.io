@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>大型系统的负载均衡方案 - 基础篇 | Chris</title><link rel="stylesheet" type="text/css" href="/css/normalize.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="/css/pure-min.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="/css/grids-responsive-min.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">大型系统的负载均衡方案 - 基础篇</h1><a id="logo" href="/.">Chris</a><p class="description">我的博客</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div id="layout" class="pure-g"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post post-page"><h1 class="post-title">大型系统的负载均衡方案 - 基础篇</h1><div class="post-meta">2016-02-19</div><div class="post-content"><p>在实际的应用场景中，单个应用服务器往往无法满足并发量较大的业务场景，往往会导致访问变慢，甚至无法提供服务。另外单个应用服务器无法保证服务的高可靠性。因此通常会采用负载均衡的解决方案。</p>
+<p>负载均衡的思路就是，采用一定的算法，将请求引导至某一台应用服务器上。在实际的生活中，存在很多类似的例子。比如去足浴店，迎宾小姐通常会带你到指定的技师为你服务。<br>那么对应过来，客人作为一个请求，迎宾小姐就是负载均衡服务器，而技师就是应用服务器。</p>
+<p>本文描述以下三个话题：</p>
+<ol>
+<li>负载均衡的方案有哪些</li>
+<li>负载均衡服务器对应用服务器的选择算法</li>
+<li>负载均衡服务器对应用服务器的管理</li>
+</ol>
+<h2 id="负载均衡的方案有哪些"><a href="#负载均衡的方案有哪些" class="headerlink" title="负载均衡的方案有哪些"></a>负载均衡的方案有哪些</h2><h3 id="HTTP重定向负载均衡"><a href="#HTTP重定向负载均衡" class="headerlink" title="HTTP重定向负载均衡"></a>HTTP重定向负载均衡</h3><p>大家肯定还记得响应代码为302的HTTP重定向，没错，HTTP重定向服务器就是采用这种方案。当请求过来的时候，服务器会根据算法，找出一台应用服务器的地址，然后将请求重定向到该台服务器上去。</p>
+<p>优点：简单<br>缺点：需要两次请求服务器才能完成一次访问，性能不好。<br>评分：一颗星<br>在实际的场景中基本不会采用。</p>
+<p>在足浴店的例子中，这个场景是这样的。当有客人进来时，迎宾小姐会查下小本子，看下哪个技师合适，然后告诉客人，你去302房间找302这个技师吧。是不是体验不大好？</p>
+<h3 id="DNS域名解析负载均衡"><a href="#DNS域名解析负载均衡" class="headerlink" title="DNS域名解析负载均衡"></a>DNS域名解析负载均衡</h3><p>DNS域名记录通常是由域名+IP地址组成的，在这个方案中，通常需要一个域名对应多个应用服务器的IP地址。比如：<br>www.test.com 120.123.26.176<br>www.test.com 124.123.26.134<br>www.test.com 115.124.88.187<br>Http请求会经过域名解析后，到达特定的应用服务</p>
+<p>优点：简单，将负载均衡工作交给了DNS服务器。<br>缺点：DNS负载均衡的控制权通常在运营商那里，应用服务的选择算法有限。<br>           另外，DNS是有缓存的，假如某台应用服务器出现问题了，虽然做了下线处理，但仍有很大的可能会在短时间内将部分请求指向改服务器。<br>评分：三颗星<br>实际使用中，通常会将DNS作为第一层的负责均衡服务器，将请求引导到采用方式的负载均衡服务器上。</p>
+<p>另外：研究了一下阿里云的云解析，是支持DNS的负载均衡的。</p>
+<h3 id="反向代理服务器负载均衡"><a href="#反向代理服务器负载均衡" class="headerlink" title="反向代理服务器负载均衡"></a>反向代理服务器负载均衡</h3><p>反向代理服务器，通常指的是将接受网络请求，然后将请求转发给内部服务器，比如Nginx较为常用的反向代理服务器。</p>
+<p>再举个例子，就好比一个包工头带了一帮小弟干活，客人只认识包工头，包工头对外接活，然后将活按照一定的规则，分给小弟。</p>
+<p>说个正经点的Nginx的配置，有三台服务器：<br>A服务器IP ：192.168.5.149 （负载均衡服务器)<br>B服务器IP ：192.168.5.27<br>C服务器IP ：192.168.5.126</p>
+<p>需要在A的Nginx config文件下配置，B和C的地址：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">upstream a.com &#123; &#10;      server  192.168.5.126:80; &#10;      server  192.168.5.27:80; &#10;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>优点：部署简单<br>缺点：负载均衡服务器本身容易成为瓶颈<br>评分：4颗星<br>因为反向代理服务器如Nginx还有其他的用处，结合负载均衡功能。本人比较喜欢利用Nginx作为负载均衡服务器。</p>
+<h3 id="IP地址转换负载均衡"><a href="#IP地址转换负载均衡" class="headerlink" title="IP地址转换负载均衡"></a>IP地址转换负载均衡</h3><h3 id="数据链路层负载均衡"><a href="#数据链路层负载均衡" class="headerlink" title="数据链路层负载均衡"></a>数据链路层负载均衡</h3><h2 id="负载均衡服务器对应用服务器的选择算法"><a href="#负载均衡服务器对应用服务器的选择算法" class="headerlink" title="负载均衡服务器对应用服务器的选择算法"></a>负载均衡服务器对应用服务器的选择算法</h2><ol>
+<li><p>轮询：<br> 应用服务器挨个使唤，这个比较容易想到。</p>
+</li>
+<li><p>加权轮询：<br> 谁的体力好，随的权值高，那就多干点活呗。这个适用于应用服务器配置不均衡的情况下。</p>
+</li>
+<li><p>随机访问：<br> 随机数本身就处理了均衡性，这个也比较容易想到。</p>
+</li>
+<li><p>最少连接：<br> 谁现在的接待量少，就谁干，这个实现可能不大方便。</p>
+</li>
+<li><p>源地址散列(Source Hashing):<br> 根据请求来源的IP地址进行Hash计算，这样来自同一个IP地址的请求总在同一个服务器上。那么不想实现Session共享的情况下，采用这种方案倒也是不错的。</p>
+</li>
+</ol>
+<h2 id="负载均衡服务器对应用服务器的管理"><a href="#负载均衡服务器对应用服务器的管理" class="headerlink" title="负载均衡服务器对应用服务器的管理"></a>负载均衡服务器对应用服务器的管理</h2><p>在足浴店的例子中，迎宾小姐需要按照一定的规则将客人引导到特定的技师那里提供服务。那么她就需要知道两个事情：</p>
+<ol>
+<li>我的小本子上有哪些技师。</li>
+<li>这些技师可以提供服务吗？起码能找到人，人还没睡着。</li>
+</ol>
+<p>对应过来，对于第一个问题，通常应用服务器都会注册到负载均衡服务器的配置文件中。<br>而对于第二个问题，通常负载均衡服务器主要采用心跳检测的方式来判定应用服务器的存活。</p>
+<p>可以参考 Keepalived</p>
+<blockquote>
+<p>Keepalived的作用是检测web服务器的状态，如果有一台web服务器死机，或工作出现故障，Keepalived将检测到，并将有故障的web服务器从系统中剔除，当web服务器工作正常后Keepalived自动将web服务器加入到服务器群中，这些工作全部自动完成，不需要人工干涉，需要人工做的只是修复故障的web服务器。</p>
+</blockquote>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://help.aliyun.com/knowledge_detail/6663767.html?spm=a21av.7663247.1998408972.6.yEkZQ7" target="_blank" rel="external">阿里云 云解析负载均衡</a><br><a href="http://www.open-open.com/lib/view/open1416560538742.html" target="_blank" rel="external">负载均衡调度算法大全</a></p>
+</div><a data-url="http://chrishuihui.github.io/2016/02/19/loadbalance-basic/" data-id="cikszxppm0004mau3r60l6ygh" class="article-share-link">分享到</a><div class="tags"></div><div class="post-nav"><a href="/2016/02/18/lombok-method-override/" class="next">在使用lombok的时候，如何override Setter方法<i class="icon-next"></i></a></div></div></div></div><div class="pure-u-1-4"><div id="sidebar"><div class="widget"><form action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank" class="search-form"><input type="text" name="q" maxlength="20" placeholder="Search" class="search-form-input"/><input type="hidden" name="sitesearch" value="http://chrishuihui.github.io"/></form></div><div class="widget"><div class="widget-title">分类</div></div><div class="widget"><div class="widget-title">标签</div><div class="tagcloud"><a href="/tags/lombok/" style="font-size: 15px;">lombok</a></div></div><div class="widget"><div class="widget-title">最新文章</div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2016/02/19/loadbalance-basic/">大型系统的负载均衡方案 - 基础篇</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/18/lombok-method-override/">在使用lombok的时候，如何override Setter方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/17/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2016/02/16/howto-github-blog/">利用Hexo在Github上建立个人Blog</a></li></ul></div><div class="widget"><div class="widget-title">友情链接</div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div></div><div id="footer">© <a href="/." rel="nofollow">Chris.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div><a id="rocket" href="#top" class="show"></a><script type="text/javascript" src="/js/jquery.min.js?v=0.0.0"></script><script type="text/javascript" src="/js/totop.js?v=0.0.0"></script><script type="text/javascript" src="/js/fancybox.pack.js?v=0.0.0"></script><script type="text/javascript" src="/js/jquery.fancybox.js?v=0.0.0"></script><link rel="stylesheet" type="text/css" href="/css/jquery.fancybox.css?v=0.0.0"><script type="text/javascript" src="/js/share.js?v=0.0.0"></script><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
